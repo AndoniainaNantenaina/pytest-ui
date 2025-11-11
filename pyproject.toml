@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pytest-ui"
 version = "0.1.0"
-description = "Une interface Streamlit pour exécuter et visualiser les tests Pytest."
+description = "A lightweight user interface for running and inspecting pytest test suites. Designed to simplify test discovery, execution, and result visualization for developers and teams."
 authors = [
   { name = "Andoniaina Nomenjanahary", email = "ando01niaina@gmail.com" }
 ]

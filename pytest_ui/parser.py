@@ -19,15 +19,15 @@ def parse_pytest_report(report: dict) -> List[TestResult]:
 
     results = []
     for test in report["tests"]:
+        name = test.get("keywords", [test["nodeid"].split("::")[-1]])[0]
         results.append(
             TestResult(
                 nodeid=test["nodeid"],
-                # name=test["keywords"].get("name", test["nodeid"]),
-                name=test["keywords"][0],
+                name=name,
                 outcome=test["outcome"],
                 duration=test.get("duration", 0.0),
                 message=test.get("call", {}).get("longrepr", ""),
-                file=test.get("file", ""),
+                file=test.get("file", test["nodeid"].split("::")[0]),
             )
         )
     return results
