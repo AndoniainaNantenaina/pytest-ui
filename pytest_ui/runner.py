@@ -25,10 +25,10 @@ Le dossier {self.project_path} n'existe pas. Veuillez vérifier le chemin."""
         cmd = [
             "pytest",
             str(self.project_path),
+            "-vv",
             "--json-report",
             f"--json-report-file={self.report_file}",
             "-q",
-            "-vv",
         ]
         if keyword:
             cmd += ["-k", keyword]

@@ -56,7 +56,6 @@ def _run_tests(
 
 if __name__ == "__main__":
     st.set_page_config(page_title="Pytest UI", layout="centered")
-    st.set_option("client.toolbarMode", "minimal")
 
     config = _configure()
 
