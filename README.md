@@ -1,4 +1,4 @@
-# pytest-ui
+# pytest-ui (`0.1.0`)
 
 ## Screenshots
 <img alt="image" src="https://github.com/user-attachments/assets/6480ab87-3b8c-43c0-879f-6c03b220c692" />
