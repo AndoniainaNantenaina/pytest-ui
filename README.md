@@ -18,6 +18,7 @@ Run the UI for the current project:
 ```
 pytest-ui --path /your/test/folder
 ```
+Then open http://localhost:8585 to see the UI.
 
 ## Usage Notes
 - The UI leverages the local pytest installation; project virtualenv is recommended.
