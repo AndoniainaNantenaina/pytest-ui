@@ -3,17 +3,36 @@ from pathlib import Path
 
 import click
 
+PYTEST_UI_WELCOME_TEXT = """
+██████╗ ██╗   ██╗████████╗███████╗███████╗████████╗    ██╗   ██╗██╗
+██╔══██╗╚██╗ ██╔╝╚══██╔══╝██╔════╝██╔════╝╚══██╔══╝    ██║   ██║██║
+██████╔╝ ╚████╔╝    ██║   █████╗  ███████╗   ██║       ██║   ██║██║
+██╔═══╝   ╚██╔╝     ██║   ██╔══╝  ╚════██║   ██║       ██║   ██║██║
+██║        ██║      ██║   ███████╗███████║   ██║       ╚██████╔╝██║
+╚═╝        ╚═╝      ╚═╝   ╚══════╝╚══════╝   ╚═╝        ╚═════╝ ╚═╝
+        """
+
 
 @click.command()
-@click.option("--port", default=8585, help="Port Streamlit à utiliser.")
-@click.option("--path", default=".", help="Chemin du projet à tester.")
+@click.option(
+    "--port",
+    default=8585,
+    help="Port to run the Pytest-UI server on.",
+)
+@click.option(
+    "--path",
+    default=".",
+    help="Path to the folder containing tests files.",
+)
 def main(port, path):
-    """Lancer l'interface Pytest-UI."""
+    """Launch the Pytest-UI interface."""
     app_path = Path(__file__).resolve().parent / "app.py"
     project_path = Path(path).resolve()
 
-    click.echo(f"📂 Tests folder: {project_path}")
-    click.echo(f"🧪 Pytest UI is running on http://localhost:{port}")
+    click.echo(click.style(PYTEST_UI_WELCOME_TEXT, fg="cyan"))
+    click.echo("🧪 Pytest UI is running on :")
+    click.echo(f"   - 📂 {project_path}")
+    click.echo(click.style(f"   - 🔗 http://localhost:{port}", fg="green"))
 
     cmd = [
         "streamlit",
@@ -31,14 +50,10 @@ def main(port, path):
         stderr=subprocess.DEVNULL,
     )
 
-    click.echo(f"✅ Pytest-UI est lancé sur http://localhost:{port}")
-    click.echo("🧠 Appuyez sur CTRL+C pour quitter.")
-
     # Wait for user interrupt
     try:
         process.wait()
     except KeyboardInterrupt:
-        click.echo("\n🛑 Arrêt de Pytest-UI...")
         process.terminate()
 
 
