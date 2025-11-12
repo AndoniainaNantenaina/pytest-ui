@@ -43,6 +43,13 @@ def _run_tests(
     keyword: Optional[str] = None,
 ) -> list[TestResult] | None:
     runner = PytestRunner(Path(tests_path), debug=False)
+
+    # List all test files in the tests_path
+    test_files = list(Path(tests_path).rglob("test_*.py"))
+
+    for f in test_files:
+        st.write(f":material/check_circle: {f.relative_to(tests_path)}")
+
     output = runner.run_tests(keyword=keyword)
 
     report = output.get("report")
