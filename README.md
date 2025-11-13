@@ -1,7 +1,7 @@
 # pytest-ui (`0.1.0`)
 
 ## Screenshots
-<img alt="image" src="https://github.com/user-attachments/assets/6480ab87-3b8c-43c0-879f-6c03b220c692" />
+<img alt="image" src="https://github.com/user-attachments/assets/54f5f2f2-4cd1-4566-a940-f913d054182b" />
 <img alt="image" src="https://github.com/user-attachments/assets/fb2f9dd8-aa9d-417d-b628-8188d4473c49" />
 
 
