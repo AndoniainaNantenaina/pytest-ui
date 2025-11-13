@@ -29,8 +29,12 @@ def main(port, path):
     app_path = Path(__file__).resolve().parent / "app.py"
     project_path = Path(path).resolve()
 
+    # Capture the path where the cli is executed
+    whereis = Path.cwd()
+
     click.echo(click.style(PYTEST_UI_WELCOME_TEXT, fg="cyan"))
     click.echo("🧪 Pytest UI is running on :")
+    click.echo(f"   - 📍 {whereis}")
     click.echo(f"   - 📂 {project_path}")
     click.echo(click.style(f"   - 🔗 http://localhost:{port}", fg="green"))
 
@@ -42,6 +46,8 @@ def main(port, path):
         str(port),
         "--",
         str(project_path),
+        "--whereis",
+        str(whereis),
     ]
 
     process = subprocess.run(

@@ -17,6 +17,20 @@ def _get_project_path_from_cli() -> Path:
     return Path(".").resolve()
 
 
+def _get_kwargs_from_cli() -> dict:
+    """Récupère les arguments passés après le `--` de streamlit run."""
+    kwargs = {}
+    args = sys.argv[1:]
+    if "--" in args:
+        index = args.index("--")
+        cli_args = args[index + 1 :]
+        for i in range(0, len(cli_args), 2):
+            key = cli_args[i].lstrip("--")
+            value = cli_args[i + 1]
+            kwargs[key] = value
+    return kwargs
+
+
 @dataclass
 class Config:
     tests_path: Path
@@ -27,6 +41,10 @@ def _configure() -> Config:
     st.header(":material/experiment: Pytest UI")
 
     default_path = _get_project_path_from_cli()
+    kwargs = _get_kwargs_from_cli()
+
+    for key, value in kwargs.items():
+        st.write(f":material/gear: **{key}**: {value}")
 
     project_path = st.text_input(
         "Tests folder",
