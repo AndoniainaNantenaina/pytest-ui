@@ -1,0 +1,2 @@
+recursive-include pytest_ui/.streamlit *.toml
+recursive-include pytest_ui/assets *

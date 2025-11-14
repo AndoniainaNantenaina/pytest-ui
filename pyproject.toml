@@ -23,6 +23,7 @@ dependencies = [
 
 [tool.setuptools.package-data]
 pytest_ui = [
+    ".streamlit/config.toml",
     "static/**/*",
     "assets/**/*",
 ]
