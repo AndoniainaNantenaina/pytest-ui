@@ -1,8 +1,8 @@
 # pytest-ui (`0.1.0`)
 
 ## Screenshots
-<img alt="image" src="https://github.com/user-attachments/assets/54f5f2f2-4cd1-4566-a940-f913d054182b" />
-<img alt="image" src="https://github.com/user-attachments/assets/fb2f9dd8-aa9d-417d-b628-8188d4473c49" />
+<img alt="image" src="https://github.com/user-attachments/assets/2a7b87e6-eb74-4f62-8fbb-863701ce547e" />
+<img alt="image" src="https://github.com/user-attachments/assets/d1037088-9246-479b-b9c1-76c97ee9c3de" />
 
 
 A lightweight user interface for running and inspecting pytest test suites. Designed to simplify test discovery, execution, and result visualization for developers and teams.
