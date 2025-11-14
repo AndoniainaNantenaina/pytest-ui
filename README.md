@@ -1,6 +1,6 @@
 # pytest-ui (`0.1.0`)
 
-<img alt="image" src="./pytest_ui/assets/Pytest UI - Logo v1.png" />
+<img width="256" id="logo" alt="image" src="./pytest_ui/assets/Pytest UI - Logo v1.png" style="border-radius: 20px;" />
 
 ## Screenshots
 <img alt="image" src="https://github.com/user-attachments/assets/2a7b87e6-eb74-4f62-8fbb-863701ce547e" />
