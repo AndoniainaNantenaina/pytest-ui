@@ -21,6 +21,13 @@ dependencies = [
   "plotly>=6.4.0"
 ]
 
+[tool.setuptools.package-data]
+pytest_ui = [
+    ".streamlit/config.toml",
+    "static/**/*",
+    "assets/**/*",
+]
+
 [project.urls]
 Homepage = "https://github.com/AndoniainaNantenaina/pytest-ui"
 Documentation = "https://github.com/AndoniainaNantenaina/pytest-ui#readme"

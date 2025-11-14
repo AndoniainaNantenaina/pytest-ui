@@ -1,4 +1,6 @@
+import os
 import subprocess
+from importlib.resources import files
 from pathlib import Path
 
 import click
@@ -38,6 +40,9 @@ def main(port, path):
     click.echo(f"   - 📂 {project_path}")
     click.echo(click.style(f"   - 🔗 http://localhost:{port}", fg="green"))
 
+    config_dir = files("pytest_ui").joinpath(".streamlit")
+    os.environ["STREAMLIT_CONFIG_DIR"] = str(config_dir)
+
     cmd = [
         "streamlit",
         "run",
@@ -50,17 +55,11 @@ def main(port, path):
         str(whereis),
     ]
 
-    process = subprocess.run(
+    subprocess.run(
         cmd,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
-
-    # Wait for user interrupt
-    try:
-        process.wait()
-    except KeyboardInterrupt:
-        process.terminate()
 
 
 if __name__ == "__main__":
