@@ -1,34 +1,25 @@
 import sys
 from dataclasses import dataclass
+from importlib.resources import files
 from pathlib import Path
 from typing import Optional
 
 import pandas as pd
 import streamlit as st
 
-from pytest_ui.parser import TestResult, parse_pytest_report
+from pytest_ui.parser import parse_pytest_report
 from pytest_ui.runner import PytestRunner
+
+# ---------------------------------------------------------
+# UTILITIES
+# ---------------------------------------------------------
 
 
 def _get_project_path_from_cli() -> Path:
-    """Récupère le chemin passé après le `--` de streamlit run."""
+    """Get project path passed after streamlit run."""
     if len(sys.argv) > 1:
-        return Path(sys.argv[-1]).resolve()
+        return Path(sys.argv[1]).resolve()
     return Path(".").resolve()
-
-
-def _get_kwargs_from_cli() -> dict:
-    """Récupère les arguments passés après le `--` de streamlit run."""
-    kwargs = {}
-    args = sys.argv[1:]
-    if "--" in args:
-        index = args.index("--")
-        cli_args = args[index + 1 :]
-        for i in range(0, len(cli_args), 2):
-            key = cli_args[i].lstrip("--")
-            value = cli_args[i + 1]
-            kwargs[key] = value
-    return kwargs
 
 
 @dataclass
@@ -38,38 +29,16 @@ class Config:
 
 
 def _configure() -> Config:
-    st.header(":material/experiment: Pytest UI")
-
     default_path = _get_project_path_from_cli()
-    kwargs = _get_kwargs_from_cli()
-
-    for key, value in kwargs.items():
-        st.write(f":material/gear: **{key}**: {value}")
-
-    project_path = st.text_input(
-        "Tests folder",
-        value=str(default_path),
-        disabled=True,
-    )
-
-    return Config(tests_path=Path(project_path), keyword=None)
+    return Config(tests_path=Path(default_path), keyword=None)
 
 
-@st.cache_data(show_spinner="Running tests...")
-def _run_tests(
-    tests_path: Path | str,
-    keyword: Optional[str] = None,
-) -> list[TestResult] | None:
+@st.cache_data(show_spinner=False)
+def _run_tests(tests_path: Path | str, keyword: Optional[str] = None):
+    """Run Pytest and return (results, output)."""
     runner = PytestRunner(Path(tests_path), debug=False)
 
-    # List all test files in the tests_path
-    test_files = list(Path(tests_path).rglob("test_*.py"))
-
-    for f in test_files:
-        st.write(f":material/check_circle: {f.relative_to(tests_path)}")
-
     output = runner.run_tests(keyword=keyword)
-
     report = output.get("report")
     out = output["stdout"] or output["stderr"] or "No output."
 
@@ -79,84 +48,190 @@ def _run_tests(
     return parse_pytest_report(report), out
 
 
-if __name__ == "__main__":
-    st.set_page_config(page_title="Pytest UI", layout="centered")
+# ---------------------------------------------------------
+# UI SECTIONS
+# ---------------------------------------------------------
 
-    config = _configure()
 
-    if not config:
-        st.stop()
+def sidebar_config(config: Config) -> tuple[bool, str, Optional[str]]:
+    """Render sidebar configuration and return click state."""
+    with st.sidebar:
+        st.header("⚙️ Configuration")
 
-    # --- Lancement des tests ---
-    run = st.button(
-        "Run Tests",
-        width="stretch",
-        icon=":material/play_arrow:",
-        type="primary",
-    )
-
-    if not run and st.session_state.get("running", False) is not True:
-        st.session_state["running"] = False
-        st.stop()
-
-    st.session_state["running"] = True
-
-    results, output = _run_tests(config.tests_path, keyword=config.keyword)
-
-    if not results:
-        st.code(output, language="bash")
-        st.warning(
-            """
-Unable to run tests.
-Please check the output above for errors.
-"""
+        st.text_input(
+            "Project Path",
+            value=str(config.tests_path),
+            disabled=True,
+            key="project_path",
         )
-        st.stop()
 
-    # --- Affichage des résultats ---
-    df = pd.DataFrame([r.__dict__ for r in results])
+        keyword = st.text_input(
+            "Keyword (optional)",
+            placeholder="e.g. login or test_home or math*",
+        )
+
+        run = st.button(
+            "Run Tests",
+            type="primary",
+            icon=":material/play_arrow:",
+        )
+
+        use_cache = st.toggle(
+            "Use Cache",
+            value=True,
+        )
+
+    return run, st.session_state.get("project_path"), keyword, use_cache
+
+
+def metrics_panel(df: pd.DataFrame):
+    """Pretty top metrics."""
     passed = len(df[df["outcome"] == "passed"])
     failed = len(df[df["outcome"] == "failed"])
     total = len(df)
 
-    c1, c2, c3 = st.columns(3, width="stretch")
+    c1, c2, c3 = st.columns(3)
+
+    def box(text, bg):
+        st.markdown(
+            f"""
+            <div style="
+                background:{bg};
+                padding:14px;
+                border-radius:12px;
+                text-align:center;
+                font-size:20px;
+                font-weight:600;
+                ">
+                {text}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
     with c1:
-        st.metric("🟢 PASSED", passed, border=True)
+        box(f"🟢 Passed: {passed}", "#d4f6d4")
+
     with c2:
-        st.metric("🟡 FAILED", failed, border=True)
+        box(f"🟡 Failed: {failed}", "#fff3c4")
+
     with c3:
-        st.metric(":material/experiment: TOTAL", total, border=True)
+        box(f"📦 Total: {total}", "#e8e8e8")
+
     st.divider()
 
+
+def results_table(df: pd.DataFrame):
+    """Group tests by file and show expandable sections with filtering."""
+    st.subheader("📂 Test Groups")
+
+    # Search input
+    search = st.text_input("🔍 Search test name / file")
+    if search:
+        df = df[
+            df["name"].str.contains(search, case=False)
+            | df["nodeid"].str.contains(search, case=False)
+        ]
+
+    # Replace status for UI
     df["nodeid"] = df["nodeid"].astype(str).str.split("::").str[0]
-    df["outcome"] = df["outcome"].astype(str).str.upper()
-    df["outcome"] = df["outcome"].replace(
+    df["status_emoji"] = df["outcome"].map(
         {
-            "PASSED": "🟢",
-            "FAILED": "🟡",
-            "SKIPPED": ">>",
+            "passed": "🟢",
+            "failed": "🟡",
+            "skipped": "⏭️",
         }
     )
 
     grouped = df.groupby("nodeid")
-    for outcome, group in grouped:
-        group_failed_len = len(group[group["outcome"] == "🟡"])
-        group_passed_len = len(group[group["outcome"] == "🟢"])
 
-        status = "🟢" if group_failed_len == 0 else "🟡"
+    for group_name, group in grouped:
+        total = len(group)
+        failed = len(group[group["outcome"] == "failed"])
+        passed = len(group[group["outcome"] == "passed"])
+
+        badge = "🟢" if failed == 0 else "🟡"
 
         with st.expander(
-            f"{status} *{outcome} ({group_passed_len}/{len(group)})*",
+            f"{badge} {group_name}  ({passed}/{total})",
+            expanded=False,
         ):
-            group = group.set_index("outcome")
-            st.dataframe(group, width="stretch")
+            # Style dataframe
+            st.dataframe(
+                group[["name", "status_emoji", "duration", "message"]].rename(
+                    columns={
+                        "status_emoji": "Status",
+                        "duration": "Duration (s)",
+                    }
+                )
+            )
 
-    st.subheader("📃Logs")
-    selected = st.selectbox("Afficher les logs d'un test :", df["name"])
-    test = df[df["name"] == selected].iloc[0]
-    st.code(
-        test["message"] or "Aucun message.",
-        language="bash",
-        line_numbers=True,
-        height="content",
+
+def logs_panel(df: pd.DataFrame, full_output: str):
+    """Bottom logs tab system."""
+    st.subheader("📝 Logs")
+
+    tab1, tab2 = st.tabs(["🔹 Test-specific Log", "📣 Full Pytest Output"])
+
+    with tab1:
+        selected = st.selectbox("Select a test:", df["name"])
+        test = df[df["name"] == selected].iloc[0]
+        st.code(test["message"] or "No log available.", language="bash")
+
+    with tab2:
+        st.code(
+            full_output or "No output.",
+            language="bash",
+            line_numbers=True,
+        )
+
+
+# ---------------------------------------------------------
+# MAIN
+# ---------------------------------------------------------
+
+if __name__ == "__main__":
+    st.set_page_config(
+        page_title="Pytest UI",
+        layout="wide",
+        page_icon=files("pytest_ui").joinpath("assets/pytest_faviconV2.png"),
     )
+
+    # Persistent flag
+    if "has_run" not in st.session_state:
+        st.session_state.has_run = False
+
+    st.logo(files("pytest_ui").joinpath("assets/pytest_faviconV2.png"))
+    st.title(":material/experiment: Pytest UI")
+
+    config = _configure()
+
+    run_clicked, project_path, keyword, use_cache = sidebar_config(config)
+
+    if run_clicked:
+        st.session_state.has_run = True
+
+    # Stop unless tests already ran
+    if not st.session_state.has_run:
+        st.info("Click **Run Tests** to start.")
+        st.stop()
+
+    # Run tests
+    with st.status("Running tests...", expanded=True) as status:
+        if not use_cache:
+            st.cache_data.clear()
+
+        results, output = _run_tests(project_path, keyword)
+        status.success("Tests completed!")
+
+    if not results:
+        st.error("Unable to run tests.")
+        st.code(output, language="bash")
+        st.stop()
+
+    # Main UI
+    df = pd.DataFrame([r.__dict__ for r in results])
+
+    metrics_panel(df)
+    results_table(df)
+    logs_panel(df, output)
