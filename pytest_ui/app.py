@@ -7,7 +7,7 @@ from typing import Optional
 import pandas as pd
 import streamlit as st
 
-from pytest_ui.parser import parse_pytest_report
+from pytest_ui.parser import TestResult, parse_pytest_report
 from pytest_ui.runner import PytestRunner
 
 # ---------------------------------------------------------
@@ -34,7 +34,9 @@ def _configure() -> Config:
 
 
 @st.cache_data(show_spinner=False)
-def _run_tests(tests_path: Path | str, keyword: Optional[str] = None):
+def _run_tests(
+    tests_path: Path | str, keyword: Optional[str] = None
+) -> tuple[list["TestResult"] | None, str]:
     """Run Pytest and return (results, output)."""
     runner = PytestRunner(Path(tests_path), debug=False)
 
@@ -53,7 +55,7 @@ def _run_tests(tests_path: Path | str, keyword: Optional[str] = None):
 # ---------------------------------------------------------
 
 
-def sidebar_config(config: Config) -> tuple[bool, str, Optional[str]]:
+def sidebar_config(config: Config) -> tuple[bool, str | None, str, bool]:
     """Render sidebar configuration and return click state."""
     with st.sidebar:
         st.header("⚙️ Configuration")
@@ -131,7 +133,7 @@ def results_table(df: pd.DataFrame):
         df = df[
             df["name"].str.contains(search, case=False)
             | df["nodeid"].str.contains(search, case=False)
-        ]
+        ].copy()
 
     # Replace status for UI
     df["nodeid"] = df["nodeid"].astype(str).str.split("::").str[0]
@@ -174,9 +176,12 @@ def logs_panel(df: pd.DataFrame, full_output: str):
     tab1, tab2 = st.tabs(["🔹 Test-specific Log", "📣 Full Pytest Output"])
 
     with tab1:
-        selected = st.selectbox("Select a test:", df["name"])
-        test = df[df["name"] == selected].iloc[0]
-        st.code(test["message"] or "No log available.", language="bash")
+        if df.empty:
+            st.info("No test results to display logs for.")
+        else:
+            selected = st.selectbox("Select a test:", df["name"])
+            test = df[df["name"] == selected].iloc[0]
+            st.code(test["message"] or "No log available.", language="bash")
 
     with tab2:
         st.code(
