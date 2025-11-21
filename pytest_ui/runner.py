@@ -41,7 +41,7 @@ Le dossier {self.project_path} n'existe pas. Veuillez vérifier le chemin."""
             capture_output=True,
             text=True,
             # TODO: Should be fixed before release
-            cwd=self.project_path.parent,
+            # cwd=self.project_path.parent,
             env=None,
         )
 
