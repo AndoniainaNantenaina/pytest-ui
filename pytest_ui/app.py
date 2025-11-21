@@ -234,7 +234,7 @@ if __name__ == "__main__":
 
     if st.button(
         "LET'S TEST! 🚀",
-        type="secondary",
+        type="primary",
         icon=":material/play_arrow:",
         width="stretch",
         disabled=not _can_run,
@@ -262,15 +262,15 @@ if __name__ == "__main__":
     output = ""
 
     for i, test_file in enumerate(to_run):
-        progress_bar.progress(
-            (i + 1) / len(to_run),
-            text=f":material/experiment: {test_file}...",
-        )
-
         res, out = _run_tests(test_file, None)
 
         if res:
             results.extend(res)
+
+        progress_bar.progress(
+            (i + 1) / len(to_run),
+            text=f":material/experiment: {test_file}...",
+        )
 
         output += out + "\n\n"
 
