@@ -199,7 +199,7 @@ def logs_panel(df: pd.DataFrame, full_output: str):
 if __name__ == "__main__":
     st.set_page_config(
         page_title="Pytest UI",
-        layout="wide",
+        layout="centered",
         page_icon=files("pytest_ui").joinpath("assets/pytest_faviconV2.png"),
     )
 
@@ -212,11 +212,6 @@ if __name__ == "__main__":
 
     config = _configure()
 
-    run_clicked, project_path, keyword, use_cache = sidebar_config(config)
-
-    if run_clicked:
-        st.session_state.has_run = True
-
     if config.tests_path.is_dir():
         test_files_inside = [
             f
@@ -225,6 +220,7 @@ if __name__ == "__main__":
         ]
 
         selected_tests = {k.name: False for k in test_files_inside}
+        st.subheader("🧪 Select Test Files to Run")
 
         c1, c2 = st.columns(2)
         for i, f in enumerate(test_files_inside):
@@ -234,9 +230,20 @@ if __name__ == "__main__":
                     value=False,
                 )
 
+    _can_run = any(v for v in selected_tests.values())
+
+    if st.button(
+        "LET'S TEST! 🚀",
+        type="secondary",
+        icon=":material/play_arrow:",
+        width="stretch",
+        disabled=not _can_run,
+        help="Select at least one test file to run." if not _can_run else None,
+    ):
+        st.session_state.has_run = True
+
     # Stop unless tests already ran
     if not st.session_state.has_run:
-        st.info("Click **Run Tests** to start.")
         st.stop()
 
     if all(not v for v in selected_tests.values()):
@@ -260,7 +267,7 @@ if __name__ == "__main__":
             text=f":material/experiment: {test_file}...",
         )
 
-        res, out = _run_tests(test_file, keyword)
+        res, out = _run_tests(test_file, None)
 
         if res:
             results.extend(res)
