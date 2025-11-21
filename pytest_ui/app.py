@@ -35,7 +35,8 @@ def _configure() -> Config:
 
 @st.cache_data(show_spinner=False)
 def _run_tests(
-    tests_path: Path | str, keyword: Optional[str] = None
+    tests_path: Path | str,
+    keyword: Optional[str] = None,
 ) -> tuple[list["TestResult"] | None, str]:
     """Run Pytest and return (results, output)."""
     runner = PytestRunner(Path(tests_path), debug=False)
@@ -216,20 +217,59 @@ if __name__ == "__main__":
     if run_clicked:
         st.session_state.has_run = True
 
+    if config.tests_path.is_dir():
+        test_files_inside = [
+            f
+            for f in config.tests_path.rglob("*")
+            if f.is_file() and f.name.startswith("test_") and f.suffix == ".py"
+        ]
+
+        selected_tests = {k.name: False for k in test_files_inside}
+
+        c1, c2 = st.columns(2)
+        for i, f in enumerate(test_files_inside):
+            with c1 if i % 2 == 0 else c2:
+                selected_tests[f.name] = st.checkbox(
+                    f.relative_to(config.tests_path).as_posix(),
+                    value=False,
+                )
+
     # Stop unless tests already ran
     if not st.session_state.has_run:
         st.info("Click **Run Tests** to start.")
         st.stop()
 
-    # Run tests
-    with st.status("Running tests...", expanded=True) as status:
-        if not use_cache:
-            st.cache_data.clear()
+    if all(not v for v in selected_tests.values()):
+        st.warning("Please select at least one test file to run.")
+        st.stop()
 
-        results, output = _run_tests(project_path, keyword)
-        status.success("Tests completed!")
+    to_run = [
+        str(config.tests_path.joinpath(name))
+        for name, selected in selected_tests.items()
+        if selected
+    ]
 
-    if not results:
+    progress_bar = st.progress(0.0, text="Running tests...")
+
+    results = []
+    output = ""
+
+    for i, test_file in enumerate(to_run):
+        progress_bar.progress(
+            (i + 1) / len(to_run),
+            text=f":material/experiment: {test_file}...",
+        )
+
+        res, out = _run_tests(test_file, keyword)
+
+        if res:
+            results.extend(res)
+
+        output += out + "\n\n"
+
+    progress_bar.empty()
+
+    if len(results) == 0:
         st.error("Unable to run tests.")
         st.code(output, language="bash")
         st.stop()
