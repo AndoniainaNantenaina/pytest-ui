@@ -40,7 +40,8 @@ Le dossier {self.project_path} n'existe pas. Veuillez vérifier le chemin."""
             cmd,
             capture_output=True,
             text=True,
-            cwd=self.project_path.parent.parent,
+            # TODO: Should be fixed before release
+            # cwd=self.project_path.parent,
             env=None,
         )
 

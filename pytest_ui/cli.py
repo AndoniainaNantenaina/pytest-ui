@@ -31,6 +31,17 @@ def main(port, path):
     app_path = Path(__file__).resolve().parent / "app.py"
     project_path = Path(path).resolve()
 
+    if not Path(project_path).is_dir():
+        click.echo(
+            f"""{click.style(project_path.as_posix().split('//')[-1], fg="red")}
+--path argument is not a valid directory.
+
+-> Please provide a valid tests directory path.
+{click.style("Pytest UI currently only supports a directory of tests.",italic=True,fg="yellow")}
+""",
+        )
+        return
+
     # Capture the path where the cli is executed
     whereis = Path.cwd()
 
@@ -38,7 +49,13 @@ def main(port, path):
     click.echo("🧪 Pytest UI is running on :")
     click.echo(f"   - 📍 {whereis}")
     click.echo(f"   - 📂 {project_path}")
-    click.echo(click.style(f"   - 🔗 http://localhost:{port}", fg="green"))
+    click.echo(
+        click.style(
+            f"   - 🔗 http://localhost:{port}",
+            fg="green",
+            bold=True,
+        )
+    )
 
     config_dir = files("pytest_ui").joinpath(".streamlit")
     os.environ["STREAMLIT_CONFIG_DIR"] = str(config_dir)
