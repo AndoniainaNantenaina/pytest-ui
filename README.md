@@ -12,7 +12,7 @@ A lightweight user interface for running and inspecting pytest test suites. Desi
 ## Features
 - [x] Discover pytest tests in a project.
 - [x] Run all tests inside a tests folder.
-- [ ] Run a single test file.
+- [x] Run a single test file.
 
 ## Installation
 Install directly from GitHub repository using pip :
@@ -22,9 +22,15 @@ pip install git+https://github.com/AndoniainaNantenaina/pytest-ui.git
 
 ## Quickstart
 Run the UI for the current project:
-```
+```bash
 pytest-ui --path /your/test/folder
 ```
+
+Run the UI for a single test file:
+```bash
+pytest-ui --path /your/test/file.py
+```
+
 Then open http://localhost:8585 to see the UI.
 
 ## Usage Notes

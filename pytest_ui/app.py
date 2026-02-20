@@ -20,13 +20,29 @@ logger = logging.getLogger(__name__)
 
 def _get_project_path_from_cli() -> Path:
     """Get project path passed after streamlit run.
-    
+
     Returns:
-        Path object pointing to the project directory.
+        Path object pointing to the project directory or test file.
     """
     if len(sys.argv) > 1:
         return Path(sys.argv[1]).resolve()
     return Path(".").resolve()
+
+
+def _is_test_file(path: Path) -> bool:
+    """Check if the given path is a test file.
+
+    Args:
+        path: Path to check.
+
+    Returns:
+        True if path is a .py test file, False otherwise.
+    """
+    return (
+        path.is_file()
+        and path.suffix == ".py"
+        and (path.name.startswith("test_") or path.name.endswith("_test.py"))
+    )
 
 
 @dataclass
@@ -93,12 +109,24 @@ def sidebar_config(config: Config) -> tuple[bool, str | None, str, bool]:
     with st.sidebar:
         st.header("⚙️ Configuration")
 
-        st.text_input(
-            "Project Path",
-            value=str(config.tests_path),
-            disabled=True,
-            key="project_path",
-        )
+        # Check if we're running a single test file
+        is_file = _is_test_file(config.tests_path)
+
+        if is_file:
+            st.text_input(
+                "Test File",
+                value=config.tests_path.name,
+                disabled=True,
+                key="project_path",
+            )
+            st.caption(f"📍 {config.tests_path.parent}")
+        else:
+            st.text_input(
+                "Project Path",
+                value=str(config.tests_path),
+                disabled=True,
+                key="project_path",
+            )
 
         keyword = st.text_input(
             "Keyword (optional)",
@@ -256,6 +284,10 @@ if __name__ == "__main__":
     st.title(":material/experiment: Pytest UI")
 
     config = _configure()
+
+    # Display file mode indicator
+    if _is_test_file(config.tests_path):
+        st.info(f"🧪 Running single test file: **{config.tests_path.name}**")
 
     run_clicked, project_path, keyword, use_cache = sidebar_config(config)
 

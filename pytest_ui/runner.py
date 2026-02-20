@@ -26,24 +26,36 @@ class PytestRunner:
 
     def run_tests(self, keyword: Optional[str] = None) -> dict:
         """Execute pytest and generate a JSON report.
-        
+
         Args:
             keyword: Optional pytest keyword filter to run specific tests.
-            
+
         Returns:
             Dictionary containing stdout, stderr, exit_code, and report.
-            
+
         Raises:
             FileNotFoundError: If the project path does not exist.
+            ValueError: If a file path is provided but is not a Python file.
         """
         if not self.project_path.exists():
             msg = f"Project path does not exist: {self.project_path}"
             logger.error(msg)
             raise FileNotFoundError(msg)
 
+        # Determine if path is a file or directory
+        is_file = self.project_path.is_file()
+
+        if is_file and self.project_path.suffix != ".py":
+            msg = f"File must be a Python file: {self.project_path}"
+            logger.error(msg)
+            raise ValueError(msg)
+
+        # For files, use the file directly; for directories, use the directory
+        target_path = str(self.project_path)
+
         cmd = [
             "pytest",
-            str(self.project_path),
+            target_path,
             "-vv",
             "--json-report",
             f"--json-report-file={self.report_file}",
@@ -55,11 +67,17 @@ class PytestRunner:
         if self.debug:
             cmd += ["-v", "-s", "--maxfail=1", "--disable-warnings"]
 
+        # For files, run from the file's parent directory; for directories, use parent of project
+        if is_file:
+            cwd = self.project_path.parent
+        else:
+            cwd = self.project_path.parent
+
         process = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
-            cwd=self.project_path.parent.parent,
+            cwd=cwd,
         )
 
         result = {

@@ -28,15 +28,15 @@ PYTEST_UI_WELCOME_TEXT = """
 @click.option(
     "--path",
     default=".",
-    type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
-    help="Path to the folder containing tests files.",
+    type=click.Path(exists=True, path_type=Path),
+    help="Path to a test file or folder containing tests files.",
 )
 def main(port: int, path: Path) -> None:
     """Launch the Pytest-UI interface.
-    
+
     Args:
         port: Port number to run the server on (1-65535).
-        path: Path to the folder containing tests files.
+        path: Path to a test file (.py) or folder containing tests files.
     """
     app_path = Path(__file__).resolve().parent / "app.py"
     project_path = Path(path).resolve()
