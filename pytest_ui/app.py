@@ -117,7 +117,7 @@ def sidebar_config(config: Config) -> tuple[bool, str | None, str, bool]:
                 "Test File",
                 value=config.tests_path.name,
                 disabled=True,
-                key="project_path",
+                key="test_file_display",
             )
             st.caption(f"📍 {config.tests_path.parent}")
         else:
@@ -125,7 +125,7 @@ def sidebar_config(config: Config) -> tuple[bool, str | None, str, bool]:
                 "Project Path",
                 value=str(config.tests_path),
                 disabled=True,
-                key="project_path",
+                key="project_path_display",
             )
 
         keyword = st.text_input(
@@ -144,7 +144,7 @@ def sidebar_config(config: Config) -> tuple[bool, str | None, str, bool]:
             value=True,
         )
 
-    return run, st.session_state.get("project_path"), keyword, use_cache
+    return run, str(config.tests_path), keyword, use_cache
 
 
 def metrics_panel(df: pd.DataFrame) -> None:
