@@ -1,9 +1,22 @@
+import logging
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
 class TestResult:
+    """Result data for a single pytest test.
+    
+    Attributes:
+        nodeid: Unique pytest node identifier (file::class::test).
+        name: Test function name.
+        outcome: Test outcome (passed, failed, skipped).
+        duration: Test execution time in seconds.
+        message: Error message or log output from test failure.
+        file: Path to the test file.
+    """
     nodeid: str
     name: str
     outcome: str
@@ -12,8 +25,15 @@ class TestResult:
     file: str
 
 
-def parse_pytest_report(report: dict) -> List[TestResult]:
-    """Transforme le rapport JSON pytest en objets Python."""
+def parse_pytest_report(report: dict) -> list[TestResult]:
+    """Convert a pytest JSON report to TestResult objects.
+    
+    Args:
+        report: Parsed JSON report from pytest.
+        
+    Returns:
+        List of TestResult objects extracted from the report.
+    """
     if not report or "tests" not in report:
         return []
 

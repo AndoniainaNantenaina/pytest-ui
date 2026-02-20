@@ -1,3 +1,4 @@
+import logging
 import sys
 from dataclasses import dataclass
 from importlib.resources import files
@@ -10,34 +11,75 @@ import streamlit as st
 from pytest_ui.parser import TestResult, parse_pytest_report
 from pytest_ui.runner import PytestRunner
 
+logger = logging.getLogger(__name__)
+
 # ---------------------------------------------------------
 # UTILITIES
 # ---------------------------------------------------------
 
 
 def _get_project_path_from_cli() -> Path:
-    """Get project path passed after streamlit run."""
+    """Get project path passed after streamlit run.
+
+    Returns:
+        Path object pointing to the project directory or test file.
+    """
     if len(sys.argv) > 1:
         return Path(sys.argv[1]).resolve()
     return Path(".").resolve()
 
 
+def _is_test_file(path: Path) -> bool:
+    """Check if the given path is a test file.
+
+    Args:
+        path: Path to check.
+
+    Returns:
+        True if path is a .py test file, False otherwise.
+    """
+    return (
+        path.is_file()
+        and path.suffix == ".py"
+        and (path.name.startswith("test_") or path.name.endswith("_test.py"))
+    )
+
+
 @dataclass
 class Config:
+    """Configuration for pytest-ui application.
+    
+    Attributes:
+        tests_path: Path to the project directory containing tests.
+        keyword: Optional pytest keyword expression for filtering tests.
+    """
     tests_path: Path
     keyword: Optional[str] = None
 
 
 def _configure() -> Config:
+    """Load configuration from CLI arguments.
+    
+    Returns:
+        Config object with tests path and optional keyword filter.
+    """
     default_path = _get_project_path_from_cli()
     return Config(tests_path=Path(default_path), keyword=None)
 
 
 @st.cache_data(show_spinner=False)
 def _run_tests(
-    tests_path: Path | str, keyword: Optional[str] = None
+    tests_path: str, keyword: Optional[str] = None
 ) -> tuple[list["TestResult"] | None, str]:
-    """Run Pytest and return (results, output)."""
+    """Run Pytest and return test results and output.
+    
+    Args:
+        tests_path: String path to the project directory (must be string for caching).
+        keyword: Optional pytest keyword filter.
+        
+    Returns:
+        Tuple of (TestResult list or None if failed, output string).
+    """
     runner = PytestRunner(Path(tests_path), debug=False)
 
     output = runner.run_tests(keyword=keyword)
@@ -56,16 +98,35 @@ def _run_tests(
 
 
 def sidebar_config(config: Config) -> tuple[bool, str | None, str, bool]:
-    """Render sidebar configuration and return click state."""
+    """Render sidebar configuration and return user inputs.
+    
+    Args:
+        config: Configuration object with project settings.
+        
+    Returns:
+        Tuple of (run_clicked, project_path, keyword, use_cache).
+    """
     with st.sidebar:
         st.header("⚙️ Configuration")
 
-        st.text_input(
-            "Project Path",
-            value=str(config.tests_path),
-            disabled=True,
-            key="project_path",
-        )
+        # Check if we're running a single test file
+        is_file = _is_test_file(config.tests_path)
+
+        if is_file:
+            st.text_input(
+                "Test File",
+                value=config.tests_path.name,
+                disabled=True,
+                key="test_file_display",
+            )
+            st.caption(f"📍 {config.tests_path.parent}")
+        else:
+            st.text_input(
+                "Project Path",
+                value=str(config.tests_path),
+                disabled=True,
+                key="project_path_display",
+            )
 
         keyword = st.text_input(
             "Keyword (optional)",
@@ -83,11 +144,15 @@ def sidebar_config(config: Config) -> tuple[bool, str | None, str, bool]:
             value=True,
         )
 
-    return run, st.session_state.get("project_path"), keyword, use_cache
+    return run, str(config.tests_path), keyword, use_cache
 
 
-def metrics_panel(df: pd.DataFrame):
-    """Pretty top metrics."""
+def metrics_panel(df: pd.DataFrame) -> None:
+    """Display test result metrics in a formatted panel.
+    
+    Args:
+        df: DataFrame containing test results.
+    """
     passed = len(df[df["outcome"] == "passed"])
     failed = len(df[df["outcome"] == "failed"])
     total = len(df)
@@ -123,8 +188,12 @@ def metrics_panel(df: pd.DataFrame):
     st.divider()
 
 
-def results_table(df: pd.DataFrame):
-    """Group tests by file and show expandable sections with filtering."""
+def results_table(df: pd.DataFrame) -> None:
+    """Display tests grouped by file with filtering and expandable sections.
+    
+    Args:
+        df: DataFrame containing test results.
+    """
     st.subheader("📂 Test Groups")
 
     # Search input
@@ -169,8 +238,13 @@ def results_table(df: pd.DataFrame):
             )
 
 
-def logs_panel(df: pd.DataFrame, full_output: str):
-    """Bottom logs tab system."""
+def logs_panel(df: pd.DataFrame, full_output: str) -> None:
+    """Display test logs with test-specific and full output tabs.
+    
+    Args:
+        df: DataFrame containing test results.
+        full_output: Raw pytest output string.
+    """
     st.subheader("📝 Logs")
 
     tab1, tab2 = st.tabs(["🔹 Test-specific Log", "📣 Full Pytest Output"])
@@ -210,6 +284,10 @@ if __name__ == "__main__":
     st.title(":material/experiment: Pytest UI")
 
     config = _configure()
+
+    # Display file mode indicator
+    if _is_test_file(config.tests_path):
+        st.info(f"🧪 Running single test file: **{config.tests_path.name}**")
 
     run_clicked, project_path, keyword, use_cache = sidebar_config(config)
 

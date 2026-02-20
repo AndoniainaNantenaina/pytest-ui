@@ -18,7 +18,7 @@ dependencies = [
   "pytest-json-report>=1.5.0",
   "click>=8.0.0",
   "pandas>=2.0.0",
-  "plotly>=6.4.0"
+  "plotly>=6.4.0",
 ]
 
 [tool.setuptools.package-data]

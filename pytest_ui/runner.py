@@ -1,13 +1,23 @@
 import json
+import logging
 import subprocess
 import tempfile
 from pathlib import Path
 from typing import Optional
 
+logger = logging.getLogger(__name__)
+
 
 class PytestRunner:
+    """Runs pytest tests and generates JSON reports."""
 
-    def __init__(self, project_path: Path, debug: bool = False):
+    def __init__(self, project_path: Path, debug: bool = False) -> None:
+        """Initialize the pytest runner.
+        
+        Args:
+            project_path: Root path of the project containing tests.
+            debug: Enable debug mode with verbose output.
+        """
         self.project_path = Path(project_path).resolve()
         self.tmp_dir = Path(tempfile.gettempdir()) / "pytest_ui"
         self.tmp_dir.mkdir(exist_ok=True)
@@ -15,16 +25,37 @@ class PytestRunner:
         self.debug = debug
 
     def run_tests(self, keyword: Optional[str] = None) -> dict:
-        """Exécute pytest et génère un rapport JSON."""
+        """Execute pytest and generate a JSON report.
+
+        Args:
+            keyword: Optional pytest keyword filter to run specific tests.
+
+        Returns:
+            Dictionary containing stdout, stderr, exit_code, and report.
+
+        Raises:
+            FileNotFoundError: If the project path does not exist.
+            ValueError: If a file path is provided but is not a Python file.
+        """
         if not self.project_path.exists():
-            raise FileNotFoundError(
-                f"""
-Le dossier {self.project_path} n'existe pas. Veuillez vérifier le chemin."""
-            )
+            msg = f"Project path does not exist: {self.project_path}"
+            logger.error(msg)
+            raise FileNotFoundError(msg)
+
+        # Determine if path is a file or directory
+        is_file = self.project_path.is_file()
+
+        if is_file and self.project_path.suffix != ".py":
+            msg = f"File must be a Python file: {self.project_path}"
+            logger.error(msg)
+            raise ValueError(msg)
+
+        # For files, use the file directly; for directories, use the directory
+        target_path = str(self.project_path)
 
         cmd = [
             "pytest",
-            str(self.project_path),
+            target_path,
             "-vv",
             "--json-report",
             f"--json-report-file={self.report_file}",
@@ -36,12 +67,17 @@ Le dossier {self.project_path} n'existe pas. Veuillez vérifier le chemin."""
         if self.debug:
             cmd += ["-v", "-s", "--maxfail=1", "--disable-warnings"]
 
+        # For files, run from the file's parent directory; for directories, use parent of project
+        if is_file:
+            cwd = self.project_path.parent
+        else:
+            cwd = self.project_path.parent
+
         process = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
-            cwd=self.project_path.parent.parent,
-            env=None,
+            cwd=cwd,
         )
 
         result = {
@@ -55,11 +91,8 @@ Le dossier {self.project_path} n'existe pas. Veuillez vérifier le chemin."""
             try:
                 with open(self.report_file, "r", encoding="utf-8") as f:
                     result["report"] = json.load(f)
-            except json.JSONDecodeError:
-                result[
-                    "stderr"
-                ] += """
-\n[WARN] Erreur de parsing du rapport JSON.
-"""
+            except json.JSONDecodeError as e:
+                logger.warning(f"Failed to parse JSON report: {e}")
+                result["stderr"] += f"\n[WARN] Failed to parse JSON report: {e}"
 
         return result
