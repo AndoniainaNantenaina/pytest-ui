@@ -1,9 +1,12 @@
+import logging
 import os
 import subprocess
 from importlib.resources import files
 from pathlib import Path
 
 import click
+
+logger = logging.getLogger(__name__)
 
 PYTEST_UI_WELCOME_TEXT = """
 ██████╗ ██╗   ██╗████████╗███████╗███████╗████████╗    ██╗   ██╗██╗
@@ -19,15 +22,22 @@ PYTEST_UI_WELCOME_TEXT = """
 @click.option(
     "--port",
     default=8585,
-    help="Port to run the Pytest-UI server on.",
+    type=click.IntRange(1, 65535),
+    help="Port to run the Pytest-UI server on (1-65535).",
 )
 @click.option(
     "--path",
     default=".",
+    type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
     help="Path to the folder containing tests files.",
 )
-def main(port, path):
-    """Launch the Pytest-UI interface."""
+def main(port: int, path: Path) -> None:
+    """Launch the Pytest-UI interface.
+    
+    Args:
+        port: Port number to run the server on (1-65535).
+        path: Path to the folder containing tests files.
+    """
     app_path = Path(__file__).resolve().parent / "app.py"
     project_path = Path(path).resolve()
 
@@ -55,11 +65,12 @@ def main(port, path):
         str(whereis),
     ]
 
-    subprocess.run(
-        cmd,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
+    try:
+        subprocess.run(cmd, check=False)
+    except FileNotFoundError as e:
+        logger.error(f"Failed to launch Streamlit: {e}")
+        click.echo(click.style("Error: Streamlit is not installed.", fg="red"))
+        raise click.ClickException("Please install Streamlit to use pytest-ui.")
 
 
 if __name__ == "__main__":
