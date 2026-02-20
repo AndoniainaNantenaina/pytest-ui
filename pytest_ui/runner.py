@@ -1,13 +1,23 @@
 import json
+import logging
 import subprocess
 import tempfile
 from pathlib import Path
 from typing import Optional
 
+logger = logging.getLogger(__name__)
+
 
 class PytestRunner:
+    """Runs pytest tests and generates JSON reports."""
 
-    def __init__(self, project_path: Path, debug: bool = False):
+    def __init__(self, project_path: Path, debug: bool = False) -> None:
+        """Initialize the pytest runner.
+        
+        Args:
+            project_path: Root path of the project containing tests.
+            debug: Enable debug mode with verbose output.
+        """
         self.project_path = Path(project_path).resolve()
         self.tmp_dir = Path(tempfile.gettempdir()) / "pytest_ui"
         self.tmp_dir.mkdir(exist_ok=True)
@@ -15,12 +25,21 @@ class PytestRunner:
         self.debug = debug
 
     def run_tests(self, keyword: Optional[str] = None) -> dict:
-        """Exécute pytest et génère un rapport JSON."""
+        """Execute pytest and generate a JSON report.
+        
+        Args:
+            keyword: Optional pytest keyword filter to run specific tests.
+            
+        Returns:
+            Dictionary containing stdout, stderr, exit_code, and report.
+            
+        Raises:
+            FileNotFoundError: If the project path does not exist.
+        """
         if not self.project_path.exists():
-            raise FileNotFoundError(
-                f"""
-Le dossier {self.project_path} n'existe pas. Veuillez vérifier le chemin."""
-            )
+            msg = f"Project path does not exist: {self.project_path}"
+            logger.error(msg)
+            raise FileNotFoundError(msg)
 
         cmd = [
             "pytest",
@@ -41,7 +60,6 @@ Le dossier {self.project_path} n'existe pas. Veuillez vérifier le chemin."""
             capture_output=True,
             text=True,
             cwd=self.project_path.parent.parent,
-            env=None,
         )
 
         result = {
@@ -55,11 +73,8 @@ Le dossier {self.project_path} n'existe pas. Veuillez vérifier le chemin."""
             try:
                 with open(self.report_file, "r", encoding="utf-8") as f:
                     result["report"] = json.load(f)
-            except json.JSONDecodeError:
-                result[
-                    "stderr"
-                ] += """
-\n[WARN] Erreur de parsing du rapport JSON.
-"""
+            except json.JSONDecodeError as e:
+                logger.warning(f"Failed to parse JSON report: {e}")
+                result["stderr"] += f"\n[WARN] Failed to parse JSON report: {e}"
 
         return result
